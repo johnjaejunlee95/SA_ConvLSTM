@@ -12,13 +12,10 @@ from utils.dataloader import *
 N_STEPS = 10
 
 def load_data(args, path):
-    # path for the datasets
     
     train_data = MovingMNIST(args, is_train=True, root=path, n_frames_input=N_STEPS, n_frames_output=N_STEPS, num_objects=[2])
     val_data = MovingMNIST(args, is_train=False, root=path, n_frames_input=N_STEPS, n_frames_output=N_STEPS, num_objects=[2])
-    # MovingMNIST = np.load(path + '/MovingMNIST/mnist_test_seq.npy').transpose(1, 0, 2, 3)
-    # train_data = MovingMNIST[:8000]
-    # val_data = MovingMNIST[8000:8800]
+
     return train_data, val_data
 
 
@@ -48,7 +45,6 @@ def main(args):
     
     loss_fn = torch.nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
-    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     
     
     if args.reload:

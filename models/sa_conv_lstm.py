@@ -99,7 +99,7 @@ class SA_ConvLSTM_Model(nn.Module):  # self-attention convlstm for spatiotempora
         self.hidden_dim = args.hidden_dim
         
         
-        self.linear_conv = nn.Conv3d(in_channels=self.hidden_dim, out_channels=self.input_dim, kernel_size=1, stride=1)
+        self.linear_conv = nn.Conv2d(in_channels=self.hidden_dim, out_channels=self.input_dim, kernel_size=1, stride=1)
         
         for i in range(self.n_layers):
             input_dim = self.input_dim if i == 0 else self.hidden_dim
@@ -112,23 +112,32 @@ class SA_ConvLSTM_Model(nn.Module):  # self-attention convlstm for spatiotempora
         
     
 
-    def forward(self, x, hidden = None):
+    def forward(self, X, hidden = None):
         if hidden == None:
             hidden = self.init_hidden(batch_size = self.batch_size, img_size = self.img_size)
         
         predict =[]
+        inputs_x = None
         
-        for t in range(x.size(1)):
-            #train with inputs
-            input_x =x[:, t, :, :, :]
+        # this process is for the hidden state updates
+        for t in range(X.size(1)):
+            inputs_x =X[:, t, :, :, :]
             for i, layer in enumerate(self.cells):
-                out, hidden[i] = layer(input_x, hidden[i])
-                out = self.bns[i](out)
-                input_x = out
-            predict.append(out)
+                inputs_x, hidden[i] = layer(inputs_x, hidden[i])
+                inputs_x = self.bns[i](inputs_x)
 
-        predict = torch.stack(predict, dim=2)
-        predict = self.linear_conv(predict).permute(0, 2, 1, 3, 4)
+            if t == X.size(1)-1:
+                inputs_x = self.linear_conv(inputs_x)
+
+        for t in range(X.size(1)):
+            for i, layer in enumerate(self.cells):
+                inputs_x, hidden[i] = layer(inputs_x, hidden[i])
+                inputs_x = self.bns[i](inputs_x)
+                
+            inputs_x = self.linear_conv(inputs_x)
+            predict.append(inputs_x)
+        
+        predict = torch.stack(predict, dim=1)   
 
         return torch.sigmoid(predict)
 

@@ -8,7 +8,9 @@ class ConvLSTMCell(nn.Module):
         super(ConvLSTMCell, self).__init__()        
         self.kernel_size= 3
         self.padding = 1
-        self.conv = nn.Conv2d(in_channels = input_channels + hidden_dim, out_channels = 4 * hidden_dim, kernel_size= self.kernel_size, padding = self.padding)
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels = input_channels + hidden_dim, out_channels = 4 * hidden_dim, kernel_size= self.kernel_size, padding = self.padding), 
+            nn.GroupNorm(4* hidden_dim, 4* hidden_dim ))
 
     def forward(self, x, hidden):
         
@@ -44,8 +46,7 @@ class ConvLSTM_Model(nn.Module):
         self.hidden_dim = args.hidden_dim
         self.reconstrcut_layer = 3
         
-        self.linear_conv = nn.Conv3d(in_channels=self.hidden_dim, out_channels=self.input_dim, kernel_size=1, stride=1, padding=0)
-        
+        self.linear_conv = nn.Conv2d(in_channels = self.hidden_dim, out_channels = self.input_dim, kernel_size=1, stride=1, padding=0)
         
         for i in range(self.n_layers):
             input_dim = self.input_dim if i == 0 else self.hidden_dim
@@ -61,21 +62,29 @@ class ConvLSTM_Model(nn.Module):
         if hidden == None:
             hidden = self.init_hidden(batch_size = self.batch_size, img_size = self.img_size)
         
-        predict = []
+        predict =[]
+        inputs_x = None
         
-        # last_inputs_x = X[:, -1, :, :, :]
-        
+        # this process is for the hidden state updates
         for t in range(X.size(1)):
             inputs_x =X[:, t, :, :, :]
             for i, layer in enumerate(self.cells):
                 inputs_x, hidden[i] = layer(inputs_x, hidden[i])
                 inputs_x = self.bns[i](inputs_x)
 
-            predict.append(inputs_x)
+            if t == X.size(1)-1:
+                inputs_x = self.linear_conv(inputs_x)
 
-        predict = torch.stack(predict, dim=2)
-        predict = self.linear_conv(predict).permute(0, 2, 1, 3, 4)
+        for t in range(X.size(1)):
+            for i, layer in enumerate(self.cells):
+                inputs_x, hidden[i] = layer(inputs_x, hidden[i])
+                inputs_x = self.bns[i](inputs_x)
+                
+            inputs_x = self.linear_conv(inputs_x)
+            predict.append(inputs_x)
         
+        predict = torch.stack(predict, dim=1)   
+
         return torch.sigmoid(predict)
     
     def init_hidden(self, batch_size, img_size):
