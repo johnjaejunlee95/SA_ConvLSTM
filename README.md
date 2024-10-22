@@ -30,6 +30,10 @@ wget https://www.cs.toronto.edu/~nitish/unsupervised_video/mnist_test_seq.npy
 python main.py --model sa_convlstm --batch_size 4 --lr 1e-3 --epochs 50 --num_layers 4 --hidden_dim 64
 ```
 
+model selection: 
+- **convlstm**: ConvLSTM
+- **sa_convlstm**: Self-Attention (Memory) ConvLSTM
+
 ##### parsing arguments:
 
 ```
