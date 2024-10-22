@@ -126,9 +126,7 @@ class SA_ConvLSTM_Model(nn.Module):  # self-attention convlstm for spatiotempora
                 inputs_x, hidden[i] = layer(inputs_x, hidden[i])
                 inputs_x = self.bns[i](inputs_x)
 
-            if t == X.size(1)-1:
-                inputs_x = self.linear_conv(inputs_x)
-
+        inputs_x = X[:, -1, :, :, :]
         for t in range(X.size(1)):
             for i, layer in enumerate(self.cells):
                 inputs_x, hidden[i] = layer(inputs_x, hidden[i])

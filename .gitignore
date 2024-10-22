@@ -1,0 +1,8 @@
+__pycache__
+tags
+train_output/
+log/
+*.json
+features/
+*.pdf
+*.png
